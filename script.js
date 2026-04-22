@@ -1,87 +1,72 @@
+const search = document.querySelector("#searchBtn")
+const input = document.querySelector("#searchBox")
+const history = document.querySelector("#historyList")
+const city = document.querySelector("#cityValue")
+const temp = document.querySelector("#temperature")
+const humidity = document.querySelector("#humidity")
+const windSpeed = document.querySelector("#windSpeed")
+const pressure = document.querySelector("#pressure")
+const precipitation = document.querySelector("#precipitation")
 
-document.addEventListener("DOMContentLoaded", showEvents);
+let cityNameList = JSON.parse(localStorage.getItem("cityNameList")) || [];
 
-function getEvents() {
-    let events = localStorage.getItem("events");
-    return events ? JSON.parse(events) : [];
-}
+cityNameList.forEach(city => {
+    historyList(city);
+});
 
-function saveEvents(events) {
-    localStorage.setItem("events", JSON.stringify(events));
-}
+search.addEventListener("click", () => {
 
-function addEvent() {
-    let title = document.getElementById("title").value.trim();
-    let date = document.getElementById("date").value;
-    let category = document.getElementById("category").value;
-    let description = document.getElementById("description").value.trim();
+    let cityName = input.value.trim();
 
-    if (title === "" || date === "" || description === "") {
-        alert("Please fill all details first!");
+    if (cityName === ""){
+        alert("Please enter a city name");
         return;
     }
 
-    let events = getEvents();
+    cityName = cityName.toLowerCase();
+    const lastCity = cityNameList[cityNameList.length - 1];
 
-    let newEvent = {
-        id: Date.now(),
-        title,
-        date,
-        category,
-        description
-    };
+    if (lastCity !== cityName){
 
-    events.push(newEvent);
-    saveEvents(events);
+        cityNameList.push(cityName);
+        localStorage.setItem("cityNameList", JSON.stringify(cityNameList));
+        cityNameList = JSON.parse(localStorage.getItem("cityNameList"));
+        historyList(cityName);
 
-    clearInputs();
-    showEvents();
-}
-
-function showEvents() {
-    let eventList = document.getElementById("eventList");
-    let events = getEvents();
-
-    eventList.innerHTML = "";
-
-    if (events.length === 0) {
-        eventList.classList.add("empty");
-        eventList.innerHTML = "No events yet. Add your first event!";
-        return;
     }
 
-    eventList.classList.remove("empty");
+    apiCall(cityName);
+    input.value = "";
 
-    events.forEach(event => {
-        let div = document.createElement("div");
-        div.className = "event-item";
+})
 
-        div.innerHTML = `
-            <h3>${event.title}</h3>
-            <p><strong>Date:</strong> ${event.date}</p>
-            <p><strong>Category:</strong> ${event.category}</p>
-            <p>${event.description}</p>
-            <button onclick="deleteEvent(${event.id})">Delete</button>
-        `;
+function historyList(cityName){
+    const listItem = document.createElement("div");
+    listItem.setAttribute("class", "listItem");
+    listItem.innerHTML = cityName;
+    history.appendChild(listItem);
+    listItem.addEventListener("click", ()=>{
+        input.value = listItem.innerText
+    })
 
-        eventList.appendChild(div);
-    });
 }
 
-function deleteEvent(id) {
-    let events = getEvents();
-    events = events.filter(event => event.id !== id);
-    saveEvents(events);
-    showEvents();
+function apiCall(cityName){
+    api = "https://api.weatherapi.com/v1/current.json?key=5a2e90b65af04c8e9d682732262402&q=city&aqi=no"
+    fetch(api.replace("city",cityName))
+    .then(res => res.json())
+    .then(data => {
+
+        city.innerHTML = cityName;
+        temp.innerHTML = data.current.temp_c + "°C";
+        humidity.innerHTML = data.current.humidity + "%";
+        windSpeed.innerHTML = data.current.wind_kph + " kph";
+        pressure.innerHTML = data.current.pressure_mb + " mb";
+        precipitation.innerHTML = data.current.precip_mm + " mm";
+        
+    })
+    .catch(err => console.error(err));
 }
 
-function clearEvents() {
-    localStorage.removeItem("events");
-    showEvents();
-}
 
-function clearInputs() {
-    document.getElementById("title").value = "";
-    document.getElementById("date").value = "";
-    document.getElementById("description").value = "";
-}
+
